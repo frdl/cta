@@ -8,7 +8,7 @@ Content-addressable storage for PHP.
 * Concat ChunkHashes into FileStorage Entry
 * Save header lines and FileStorage Entry CTA-Hash into UriStorage
 
-# Read/Serve Contents
+## Read/Serve Contents
 * Serve header lines from UriStorage (if for Browser/Download)
 * Look up FileStorage Entry in UriStorage
 * Look up ChunkHashes in FileStorage
