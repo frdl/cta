@@ -1,5 +1,5 @@
 # cta
-Content-addressable storage for PHP. 
+Content-addressable storage for PHP. *work in progress!*
 
 # Idea
 
