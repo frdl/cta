@@ -3,7 +3,7 @@
 namespace Webfan\cta\Storage;
 
 interface StorageConfigInterface {
-    public function getUriStrorage();
-    public function getFileStrorage();
-    public function getChunkStrorage();
+    public function getUriStorage();
+    public function getFileSrorage();
+    public function getChunkStorage();
 }
