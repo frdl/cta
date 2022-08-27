@@ -1,4 +1,5 @@
 <?php
+namespace Webfan\cta\HashType;
 
 interface HashTypeInterface {
     public function getType() : array;
