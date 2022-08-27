@@ -1,0 +1,12 @@
+{
+  "name" : "frdl/cta",
+  "type" : "library",
+  "description": "Content-addressable storage for PHP.",	  
+  "license": ["MIT"],	  
+  "require" : {
+	    "php": ">=7.1 | >=8.0"
+  },	  
+  "autoload": {
+      "classmap": ["src/"]
+  }  
+}
