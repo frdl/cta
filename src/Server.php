@@ -7,6 +7,8 @@ use Exception;
 use SplFileObject;
 use Webfan\cta\HashType\HashTypeInterface;
 use Webfan\cta\HashType\XHashSha1;
+use Webfan\cta\Storage\StorageInterface;
+use frdl\cta\NotReadableException;
 
 class Server
 {
