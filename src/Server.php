@@ -120,8 +120,8 @@ class Server
         ];
     }
 
-    public function save(string $source, string $uri = null, array $headers = null, $touch = true, 
-						 $assoc = true,
+    public function save(string $source, string $uri = null, array $headers = null, bool $touch = true, 
+						 bool $assoc = true,
 						 int $expiresAtTimestamp = null) : array
     {
         if(true === $touch){
@@ -300,7 +300,7 @@ class Server
         int $chunksize = 80,
         string $delimiter = null,
         \callable|\closure $callback = null,
-        $assoc = true
+        bool $assoc = true
     ) : array {
         $me = &$this;
         $class = $this->config[HashTypeInterface::class];
@@ -321,12 +321,12 @@ class Server
         return true !== $assoc ? [$uhash, $hash, $chunks] : $this->assoc([$uhash, $hash, $chunks]);
     }
 
-    public function serve(string $uri = null, $withHeaders = true)
+    public function serve(string $uri = null,bool $withHeaders = true) : array
     {
         return $this->getByUri($uri, true, true, $withHeaders);
     }
 
-    public function getByUri(string $uri = null, $verbose = false, $count = false, $withHeaders = true) : array
+    public function getByUri(string $uri = null, bool $verbose = false, bool $count = false, bool $withHeaders = true) : array
     {
         $class = $this->config[HashTypeInterface::class];
         $XHashSha1 = new $class($uri);
@@ -493,7 +493,7 @@ class Server
     }
 
 		
-   public function isDirEmpty($dir) {
+   public function isDirEmpty(string $dir) : bool {
       $handle = opendir($dir);
       while (false !== ($entry = readdir($handle))) {
         if ($entry != "." && $entry != "..") {
@@ -506,7 +506,7 @@ class Server
    }	
 		
 		
-    public function mimeByPath($path) : string
+    public function mimeByPath(string $path) : string
     {
         preg_match("|\.([a-z0-9]{2,4})$|i", $path, $fileSuffix);
 
