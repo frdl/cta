@@ -29,4 +29,12 @@ public function getHashes(
         string $delimiter = null
     ) : array;
 /* public function getFileChunks( string $filename,\callable|\closure $callback = null,int $chunksize = 80,string $delimiter = null) : array; */
+ public function pruneUnreferencedFile( $filehash );
+ public function pruneUnreferencedChunk( $chunkhash );
+ public function unlink(string $uri );
+ public function unreferenceUri( $urihash ); 
+	
+ //Cronjobs:
+ public function pruneExpiredFiles( );
+ public function pruneExpiredUris( );	
 }
