@@ -10,7 +10,7 @@ use Webfan\cta\HashType\XHashSha1;
 use Webfan\cta\Storage\StorageInterface;
 use frdl\cta\NotReadableException;
 
-class Server
+class Server implements StorageInterface
 {
      const XPoweredBy = 'Webfan CTA Storage Server '.__CLASS__;
      const URIS_DIR = 'URIS_DIR';
