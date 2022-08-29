@@ -1,6 +1,27 @@
 <?php 
+/****************************************************************************
+MIT License
 
+Copyright (c) 2022 Till Wehowski
 
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+****************************************************************************/
 namespace frdl\cta;
 
 use Exception;
@@ -24,9 +45,9 @@ class Server implements StorageInterface
      const URI_REVERSE_FILE = 'r.txt';
      const WEAK_COUNTER_FILE = 'hits.txt';
      const UNIQUE_COUNTER_FILE = 'visitors.txt';
-	 const REFERENCES_DIR = 'refrences';
-	 const EXPIRES_FILE = 'e.txt';
-	 const LAST_WRITE_FILE = 't.txt';
+     const REFERENCES_DIR = 'refrences';
+     const EXPIRES_FILE = 'e.txt';
+     const LAST_WRITE_FILE = 't.txt';
 
     protected $config = [];
 
@@ -134,7 +155,16 @@ class Server implements StorageInterface
         $chunkContentsFile = self::CHUNK_CONTENTS_FILE;
 		$lastWriteFile =  self::LAST_WRITE_FILE;
         $me = &$this;
-        $fn =function($XHash, $chunk, $i) use($chunksDirectory, $chunkContentsFile, $lastWriteFile, &$me) {
+	$outfiles = [
+	  'meta' => [],
+	  'chunks' => [],
+	  'f' => [],
+	  'u' => [],
+	  'hc' => [],  //headers and chunks
+	  'h' => [],  //headers
+	  'ch' => [],  //chunkhashes		
+	];
+        $fn =function($XHash, $chunk, $i) use($chunksDirectory, $chunkContentsFile, $lastWriteFile, &$outfiles, &$me) {
                                                             $chunkContentsDir = rtrim($chunksDirectory, '/\\ ')
                                                                 . \DIRECTORY_SEPARATOR
                                                                 . str_replace(['\\', '/'],
@@ -147,13 +177,15 @@ class Server implements StorageInterface
 
                                                              $chunkFile = $chunkContentsDir.$chunkContentsFile;
                                                              file_put_contents($chunkFile, $me->serializeChunk($chunk));
+		                                             $outfiles['chunks'][$i]=$chunkFile;
 			
-			                                                 file_put_contents($chunkContentsDir.$lastWriteFile, time());
+			                                     file_put_contents($chunkContentsDir.$lastWriteFile, time());
+		                                             $outfiles['meta'][]=$chunkContentsDir.$lastWriteFile;
                                                  };
         list($uriHash, $hash,  $chunks) = $this->getHashes($source, $uri, $this->config['chunksize'],$this->config['delimiter'],$fn, false);
 
 
-        $fileStorageDir = rtrim($this->config[self::URIS_DIR], '/\\ ')
+        $fileStorageDir = rtrim($this->config[self::FILES_DIR], '/\\ ')
             . \DIRECTORY_SEPARATOR . str_replace(['\\', '/'], [\DIRECTORY_SEPARATOR, \DIRECTORY_SEPARATOR],
                                                  $this->d($hash)). \DIRECTORY_SEPARATOR;
 
@@ -165,7 +197,7 @@ class Server implements StorageInterface
 
         $reverseFile = $uriDir.self::URI_REVERSE_FILE;
         file_put_contents($reverseFile, $uri);
-
+        $outfiles['meta'][]=$reverseFile;
 
         if(!is_dir($uriDir)){
            mkdir($uriDir, 0755, true);
@@ -232,6 +264,7 @@ class Server implements StorageInterface
         file_put_contents($fileHashFile, $this->d($hash));
 
         file_put_contents($fileStorageDir.self::FILE_HASH, $this->d($hash));
+	    
         $chunkHashesFile = $fileStorageDir.self::CHUNK_HASHES_FILE;
 
         if(file_exists($chunkHashesFile)){
@@ -252,32 +285,18 @@ class Server implements StorageInterface
                                                  $this->d($hash)). \DIRECTORY_SEPARATOR;			
 			
 			
-            $referenceUriDir = rtrim($this->config[self::CHUNKS_DIR], '/\\ ')
-               . \DIRECTORY_SEPARATOR . str_replace(['\\', '/'], [\DIRECTORY_SEPARATOR, \DIRECTORY_SEPARATOR],
-                                                 $this->d($h)). \DIRECTORY_SEPARATOR
-				.$this->config[self::REFERENCES_DIR]
-               . \DIRECTORY_SEPARATOR
-				.'u'
-               . \DIRECTORY_SEPARATOR . str_replace(['\\', '/'], [\DIRECTORY_SEPARATOR, \DIRECTORY_SEPARATOR],
-                                                 $this->d($uriHash)). \DIRECTORY_SEPARATOR;			
-			
            if(!is_dir($referenceFileDir)){
               mkdir($referenceFileDir, 0755, true);
-           }
+           }		
 
-           if(!is_dir($referenceUriDir)){
-               mkdir($referenceUriDir, 0755, true);    
-		   }
-			
-			if(null !== $expiresAtTimestamp){
-				file_put_contents($referenceFileDir.self::EXPIRES_FILE, $expiresAtTimestamp);
-				file_put_contents($referenceUriDir.self::EXPIRES_FILE, $expiresAtTimestamp);
-			}
 			
         }
         fclose($file);
         fclose($file_ch);
-		
+	
+        $outfiles['ch'][]=$file;
+        $outfiles['hc'][]=$headersAndChunkHashesFile;
+	    
 		           
 		$referenceUriDir = $fileStorageDir. \DIRECTORY_SEPARATOR
 				.$this->config[self::REFERENCES_DIR]
@@ -291,7 +310,10 @@ class Server implements StorageInterface
 			}
 		
 		file_put_contents($fileStorageDir.$lastWriteFile, time());
+	        $outfiles['meta'][]=$fileStorageDir.$lastWriteFile;
+	    
 		file_put_contents($uriDir.$lastWriteFile, time());
+	        $outfiles['meta'][]=$uriDir.$lastWriteFile;
 		
         return true !== $assoc ? [$uriHash, $hash,  $chunks] : $this->assoc([$uriHash, $hash,  $chunks]);
     }
@@ -328,6 +350,113 @@ class Server implements StorageInterface
         return $this->getByUri($uri, true, true, $withHeaders);
     }
 
+    //todo 
+    public function unreferenceUri( $urihash )
+    {
+         $uriDir = rtrim($this->config[self::URIS_DIR], '/\\ ')
+            . \DIRECTORY_SEPARATOR . str_replace(['\\', '/'], [\DIRECTORY_SEPARATOR, \DIRECTORY_SEPARATOR],
+                                                 $this->d($uriHash)). \DIRECTORY_SEPARATOR;
+	    
+          $fileHash = file_get_contents($uriDir.self::FILE_HASH);
+	               
+	    $referenceUriDir = rtrim($this->config[self::FILES_DIR], '/\\ ')
+               . \DIRECTORY_SEPARATOR . str_replace(['\\', '/'], [\DIRECTORY_SEPARATOR, \DIRECTORY_SEPARATOR],
+                                                 $this->d($fileHash)). \DIRECTORY_SEPARATOR
+				.$this->config[self::REFERENCES_DIR]
+               . \DIRECTORY_SEPARATOR
+				.'u'
+               . \DIRECTORY_SEPARATOR . str_replace(['\\', '/'], [\DIRECTORY_SEPARATOR, \DIRECTORY_SEPARATOR],
+                                                 $this->d($uriHash)). \DIRECTORY_SEPARATOR;
+	    
+	    	     
+	     $this->rmdir($referenceUriDir);
+	    $this->pruneUnreferencedFile( $fileHash );	
+    }
+
+    
+    public function unlink(string $uri )
+    {
+	  $class = $this->config[HashTypeInterface::class];
+          $XHashSha1 = new $class($uri);
+          $uriHash = $XHashSha1();    
+          $this->unreferenceUri( $urihash );
+    }
+
+    //todo 
+    public function pruneUnreferencedChunk( $chunkhash )
+    {
+	    			
+	    $chunkDir = rtrim($this->config[self::CHUNKS_DIR], '/\\ ')            
+				 . \DIRECTORY_SEPARATOR . str_replace(['\\', '/'], [\DIRECTORY_SEPARATOR, \DIRECTORY_SEPARATOR],
+                                                 $chunkhash). \DIRECTORY_SEPARATOR;
+	    
+			 $referencesFilesDir = $chunkDir. \DIRECTORY_SEPARATOR			
+				 .$this->config[self::REFERENCES_DIR]            
+				 . \DIRECTORY_SEPARATOR		
+				 .'f'             
+				 . \DIRECTORY_SEPARATOR;
+	    
+	    if(is_dir($referencesFilesDir) && $this->isDirEmpty($referencesFilesDir)){
+		$this->rmdir($chunkDir);     
+	    }
+    }
+
+    //todo 
+    public function pruneUnreferencedFile( $filehash )
+    {
+        $fileStorageDir = rtrim($this->config[self::FILES_DIR], '/\\ ')
+            . \DIRECTORY_SEPARATOR . str_replace(['\\', '/'], [\DIRECTORY_SEPARATOR, \DIRECTORY_SEPARATOR],
+                                                 $this->d($filehash)). \DIRECTORY_SEPARATOR;
+	    
+	$uriReferencesDir = $fileStorageDir. \DIRECTORY_SEPARATOR
+				.$this->config[self::REFERENCES_DIR]
+               . \DIRECTORY_SEPARATOR
+				.'u'
+               . \DIRECTORY_SEPARATOR;		
+	    
+	 if($this->isDirEmpty($uriReferencesDir)){
+	     $chunkHashesFile = $fileStorageDir.self::CHUNK_HASHES_FILE;
+	     $file = new SplFileObject($chunkHashesFile);
+		 while (!$file->eof()) {
+                      // Echo one line from the file.
+                      $line = $file->fgets(); 
+			            
+			 $referenceFileDir = rtrim($this->config[self::CHUNKS_DIR], '/\\ ')            
+				 . \DIRECTORY_SEPARATOR . str_replace(['\\', '/'], [\DIRECTORY_SEPARATOR, \DIRECTORY_SEPARATOR],
+                                                 trim($line)). \DIRECTORY_SEPARATOR			
+				 .$this->config[self::REFERENCES_DIR]            
+				 . \DIRECTORY_SEPARATOR		
+				 .'f'             
+				 . \DIRECTORY_SEPARATOR  . str_replace(['\\', '/'], [\DIRECTORY_SEPARATOR, \DIRECTORY_SEPARATOR],                       
+			  $this->d($filehash)). \DIRECTORY_SEPARATOR;
+			 $this->rmdir($referenceFileDir); 
+			 
+		    $this->pruneUnreferencedChunk( trim($line) );			 
+		 }
+             // Unset the file to call __destruct(), closing the file handle.
+              $file = null;
+	     $this->rmdir($fileStorageDir); 		 
+	 }
+    }
+	
+   public function rmdir(string $dir) {
+       $handle = opendir($dir);     
+		 while (false !== ($entry = readdir($handle))) {       
+			 if ($entry != "." && $entry != "..") {        
+				 $path = rtrim($dir, '/\\ ') . \DIRECTORY_SEPARATOR . $entry;
+				 if(is_file($path)){
+				   unlink($path);	 
+				 }elseif(is_dir($path)){
+				       $this->rmdir($path);	
+				       rmdir($path);
+				 }
+				 
+			 }    
+		 }     
+        closedir($handle);
+	rmdir($dir);   
+   }	
+	
     public function getByUri(string $uri = null, bool $verbose = false, bool $count = false, bool $withHeaders = true) : array
     {
         $class = $this->config[HashTypeInterface::class];
