@@ -20,7 +20,7 @@ public function getHashes(
         \callable|\closure $callback = null,
         bool $assoc = true
     ) : array;
- public function serve(string $uri = null, $withHeaders = true) : array;
+ public function serve(string $uri = null, bool $withHeaders = true) : array;
  public function getByUri(string $uri = null, bool $verbose = false, bool $count = false, bool $withHeaders = true) : array;
  public function getChunks(
         string $source,
