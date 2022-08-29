@@ -140,6 +140,7 @@ class Server implements StorageInterface
             'uriHash' => $result[0],
             'hash' => $result[1],
             'chunks' => $result[2],
+	    'outfiles' => (isset($result[3]) && is_array($result[3])) ? $result[3] : [],
         ];
     }
 
@@ -153,7 +154,7 @@ class Server implements StorageInterface
 
         $chunksDirectory = $this->config[self::CHUNKS_DIR];
         $chunkContentsFile = self::CHUNK_CONTENTS_FILE;
-		$lastWriteFile =  self::LAST_WRITE_FILE;
+	$lastWriteFile =  self::LAST_WRITE_FILE;
         $me = &$this;
 	$outfiles = [
 	  'meta' => [],
@@ -315,7 +316,7 @@ class Server implements StorageInterface
 		file_put_contents($uriDir.$lastWriteFile, time());
 	        $outfiles['meta'][]=$uriDir.$lastWriteFile;
 		
-        return true !== $assoc ? [$uriHash, $hash,  $chunks] : $this->assoc([$uriHash, $hash,  $chunks]);
+        return true !== $assoc ? [$uriHash, $hash,  $chunks, $outfiles] : $this->assoc([$uriHash, $hash,  $chunks, $outfiles]);
     }
 
     public function getHashes(
