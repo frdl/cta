@@ -18,7 +18,7 @@ class XHashSha1 implements HashTypeInterface
         return [          
            '1.3.6.1.4.1.37553.8.1.8.1.16606.1.56234465',
         ];
-    };
+    }
     public function __invoke($contents): array{
          if(!is_string($contents)){      
            if(null === $this->getHash()){          
@@ -32,11 +32,11 @@ class XHashSha1 implements HashTypeInterface
             strlen($contents),
          ];
        return $this->hash;
-    };
+    }
     public function __toString(): string{
        if(null === $this->getHash()){
           throw new \Exception('You must hash some contents before you can get a string!'); 
        }
        return implode($this->sep, array_reverse($this->hash));
-    }; 
+    }
 }
