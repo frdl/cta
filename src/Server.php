@@ -140,7 +140,7 @@ class Server implements StorageInterface
             'uriHash' => $result[0],
             'hash' => $result[1],
             'chunks' => $result[2],
-	    'outfiles' => (isset($result[3]) && is_array($result[3])) ? $result[3] : [],
+	        'outfiles' => (count($result) > 3 && is_array($result[3])) ? $result[3] : [],
         ];
     }
 
@@ -154,7 +154,7 @@ class Server implements StorageInterface
 
         $chunksDirectory = $this->config[self::CHUNKS_DIR];
         $chunkContentsFile = self::CHUNK_CONTENTS_FILE;
-	$lastWriteFile =  self::LAST_WRITE_FILE;
+		$lastWriteFile =  self::LAST_WRITE_FILE;
         $me = &$this;
 	$outfiles = [
 	  'meta' => [],
@@ -180,7 +180,7 @@ class Server implements StorageInterface
                                                              file_put_contents($chunkFile, $me->serializeChunk($chunk));
 		                                             $outfiles['chunks'][$i]=$chunkFile;
 			
-			                                     file_put_contents($chunkContentsDir.$lastWriteFile, time());
+			                                         file_put_contents($chunkContentsDir.$lastWriteFile, time());
 		                                             $outfiles['meta'][]=$chunkContentsDir.$lastWriteFile;
                                                  };
         list($uriHash, $hash,  $chunks) = $this->getHashes($source, $uri, $this->config['chunksize'],$this->config['delimiter'],$fn, false);
@@ -196,10 +196,6 @@ class Server implements StorageInterface
 
 
 
-        $reverseFile = $uriDir.self::URI_REVERSE_FILE;
-        file_put_contents($reverseFile, $uri);
-        $outfiles['meta'][]=$reverseFile;
-
         if(!is_dir($uriDir)){
            mkdir($uriDir, 0755, true);
         }
@@ -208,8 +204,18 @@ class Server implements StorageInterface
            mkdir($fileStorageDir, 0755, true);
         }
 
+		
+		
+        $reverseFile = $uriDir.self::URI_REVERSE_FILE;
+        file_put_contents($reverseFile, $uri);
+        $outfiles['meta'][]=$reverseFile;
+
+		
         $headersFile = $uriDir.self::HEADERS_FILE;
-        $headersAndChunkHashesFile = $uriDir.self::HEADERS_AND_CHUNK_HASHES;
+        $headersAndChunkHashesFile = $fileStorageDir.self::HEADERS_AND_CHUNK_HASHES;
+		
+
+		
         if(file_exists($headersFile)){
           unlink($headersFile);
         }
@@ -279,7 +285,7 @@ class Server implements StorageInterface
             $referenceFileDir = rtrim($this->config[self::CHUNKS_DIR], '/\\ ')
                . \DIRECTORY_SEPARATOR . str_replace(['\\', '/'], [\DIRECTORY_SEPARATOR, \DIRECTORY_SEPARATOR],
                                                  $this->d($h)). \DIRECTORY_SEPARATOR
-				.$this->config[self::REFERENCES_DIR]
+				.self::REFERENCES_DIR
                . \DIRECTORY_SEPARATOR
 				.'f'
                . \DIRECTORY_SEPARATOR  . str_replace(['\\', '/'], [\DIRECTORY_SEPARATOR, \DIRECTORY_SEPARATOR],
@@ -295,12 +301,12 @@ class Server implements StorageInterface
         fclose($file);
         fclose($file_ch);
 	
-        $outfiles['ch'][]=$file;
+        $outfiles['ch'][]=$chunkHashesFile;
         $outfiles['hc'][]=$headersAndChunkHashesFile;
 	    
 		           
 		$referenceUriDir = $fileStorageDir. \DIRECTORY_SEPARATOR
-				.$this->config[self::REFERENCES_DIR]
+				.self::REFERENCES_DIR
                . \DIRECTORY_SEPARATOR
 				.'u'
                . \DIRECTORY_SEPARATOR . str_replace(['\\', '/'], [\DIRECTORY_SEPARATOR, \DIRECTORY_SEPARATOR],
@@ -316,7 +322,8 @@ class Server implements StorageInterface
 		file_put_contents($uriDir.$lastWriteFile, time());
 	        $outfiles['meta'][]=$uriDir.$lastWriteFile;
 		
-        return true !== $assoc ? [$uriHash, $hash,  $chunks, $outfiles] : $this->assoc([$uriHash, $hash,  $chunks, $outfiles]);
+       return true !== $assoc ? [$uriHash, $hash,  $chunks, $outfiles] : $this->assoc([$uriHash, $hash,  $chunks, $outfiles]);
+		//  return true !== $assoc ? [$uriHash, $hash,  $chunks] : $this->assoc([$uriHash, $hash,  $chunks]);
     }
 
     public function getHashes(
@@ -332,7 +339,7 @@ class Server implements StorageInterface
         $XHashSha1 = new $class($uri);
         $uhash = $XHashSha1();
 
-            $source = $this->serializeChunk($source);
+       //     $source = $this->serializeChunk($source);
 
         $chunks = [];
         $fn = function($XHash, $chunk, $i) use (&$chunks, $callback, &$me){
@@ -350,7 +357,7 @@ class Server implements StorageInterface
     {
         return $this->getByUri($uri, true, true, $withHeaders);
     }
-
+ 
     //todo 
    public function pruneExpiredFiles( ){
 	   
@@ -373,7 +380,7 @@ class Server implements StorageInterface
 	    $referenceUriDir = rtrim($this->config[self::FILES_DIR], '/\\ ')
                . \DIRECTORY_SEPARATOR . str_replace(['\\', '/'], [\DIRECTORY_SEPARATOR, \DIRECTORY_SEPARATOR],
                                                  $this->d($fileHash)). \DIRECTORY_SEPARATOR
-				.$this->config[self::REFERENCES_DIR]
+				.self::REFERENCES_DIR
                . \DIRECTORY_SEPARATOR
 				.'u'
                . \DIRECTORY_SEPARATOR . str_replace(['\\', '/'], [\DIRECTORY_SEPARATOR, \DIRECTORY_SEPARATOR],
@@ -402,13 +409,13 @@ class Server implements StorageInterface
                                                  $chunkhash). \DIRECTORY_SEPARATOR;
 	    
 			 $referencesFilesDir = $chunkDir. \DIRECTORY_SEPARATOR			
-				 .$this->config[self::REFERENCES_DIR]            
+				 .self::REFERENCES_DIR          
 				 . \DIRECTORY_SEPARATOR		
 				 .'f'             
 				 . \DIRECTORY_SEPARATOR;
 	    
 	    if(is_dir($referencesFilesDir) && $this->isDirEmpty($referencesFilesDir)){
-		$this->rmdir($chunkDir);     
+		   $this->rmdir($chunkDir);     
 	    }
     }
 
@@ -420,7 +427,7 @@ class Server implements StorageInterface
                                                  $this->d($filehash)). \DIRECTORY_SEPARATOR;
 	    
 	$uriReferencesDir = $fileStorageDir. \DIRECTORY_SEPARATOR
-				.$this->config[self::REFERENCES_DIR]
+				.self::REFERENCES_DIR
                . \DIRECTORY_SEPARATOR
 				.'u'
                . \DIRECTORY_SEPARATOR;		
@@ -435,7 +442,7 @@ class Server implements StorageInterface
 			 $referenceFileDir = rtrim($this->config[self::CHUNKS_DIR], '/\\ ')            
 				 . \DIRECTORY_SEPARATOR . str_replace(['\\', '/'], [\DIRECTORY_SEPARATOR, \DIRECTORY_SEPARATOR],
                                                  trim($line)). \DIRECTORY_SEPARATOR			
-				 .$this->config[self::REFERENCES_DIR]            
+				 .self::REFERENCES_DIR          
 				 . \DIRECTORY_SEPARATOR		
 				 .'f'             
 				 . \DIRECTORY_SEPARATOR  . str_replace(['\\', '/'], [\DIRECTORY_SEPARATOR, \DIRECTORY_SEPARATOR],                       
@@ -467,7 +474,7 @@ class Server implements StorageInterface
         closedir($handle);
 	rmdir($dir);   
    }	
-	
+	 
     public function getByUri(string $uri = null, bool $verbose = false, bool $count = false, bool $withHeaders = true) : array
     {
         $class = $this->config[HashTypeInterface::class];
@@ -484,70 +491,113 @@ class Server implements StorageInterface
 
         $counterFile =  $uriDir.self::WEAK_COUNTER_FILE;
         if(!file_exists($counterFile)){
-            file_put_contents($counterFile, 1);
+            file_put_contents($counterFile, $count ? 1 : 0);
         }else{
-           file_put_contents($counterFile, intval(file_get_contents($counterFile)) + 1);
+           file_put_contents($counterFile, intval(file_get_contents($counterFile)) + ($count ? 1 : 0));
         }
 
-        $headersAndChunkHashesFile = $uriDir.self::HEADERS_AND_CHUNK_HASHES;
+		
+		 $filehash = file_get_contents($uriDir.self::FILE_HASH);
+		
+		
+     //   $headersAndChunkHashesFile = $uriDir.self::HEADERS_AND_CHUNK_HASHES;
+			
+		$fileStorageDir = rtrim($this->config[self::FILES_DIR], '/\\ ')
+            . \DIRECTORY_SEPARATOR . str_replace(['\\', '/'], [\DIRECTORY_SEPARATOR, \DIRECTORY_SEPARATOR],
+                                                 $this->d($filehash)). \DIRECTORY_SEPARATOR;		
+                  
+		$headersAndChunkHashesFile = $fileStorageDir.self::HEADERS_AND_CHUNK_HASHES;
+		
+		
         $file = new SplFileObject($headersAndChunkHashesFile);
         $inHeader = true;
         $headers = [];
         $contents = '';
         // Loop until we reach the end of the file.
-        while (!$file->eof()) {
+        while(!$file->eof()) {
             // Echo one line from the file.
             $line = $file->fgets();
-            if($inHeader === true && ($line === "\n" || '' === trim($line))){
+			
+	       if(true === $inHeader && ($line === "\n" 
+									  || '' === $line
+									  || '' === trim($line) 
+									 )){
                 $inHeader = false;
-            }elseif(true === $inHeader){
-                $headers[]=$line;
-                if(true === $verbose && true === $withHeaders){
-                    $h = explode(':', $line);
-                       if('Last-Modified' === $h[0]){
-                       // $headers = \getallheaders();
-                          if(isset($_SERVER['HTTP_IF_MODIFIED_SINCE']) && $_SERVER['HTTP_IF_MODIFIED_SINCE'] == trim($h[1]) ) {
-                          header('HTTP/1.1 304 Not Modified');
-                          //exit();
-						  return [        
-							  'headers'=>['HTTP/1.1 304 Not Modified'],           
-							  'contents' => '',
-						  ];
-                       }elseif('ETag' === $h[0]){			
-                          if(isset($_SERVER['HTTP_ETAG']) && $_SERVER['HTTP_ETAG'] == trim($h[1]) ) {
-                          header('HTTP/1.1 304 Not Modified');
-                          //exit();				
-						  return [        
-							  'headers'=>['HTTP/1.1 304 Not Modified'],           
-							  'contents' => '',
-						  ];		  
-					   }
-                    }
-                 // header($line);
-                }
-            }elseif(false === $inHeader && '' !== trim($line) ){
+				continue;  	 
+            }elseif(false === $inHeader){   
+			
                  $chunkContentsDir = rtrim($this->config[self::CHUNKS_DIR], '/\\ ')
                                                                 . \DIRECTORY_SEPARATOR
                                                                 . str_replace(['\\', '/'],
                                                                               [\DIRECTORY_SEPARATOR, \DIRECTORY_SEPARATOR],
                                                                                trim($line)). \DIRECTORY_SEPARATOR;
-                $chunkFile = $chunkContentsDir.self::CHUNK_CONTENTS_FILE;
-                $chunk = $this->unserializeChunk(file_get_contents($chunkFile));
-                $contents.=$chunk;
-
-            }
-        }
+					 
+					    
+                  $chunkFile = $chunkContentsDir.self::CHUNK_CONTENTS_FILE;
+			      if(!file_exists($chunkFile) && '' === $line && $file->eof() ){
+					  //die(('' === $line && $file->eof() ).$file->eof().$contents);
+					  break;
+				  }
+			   
+                  $chunk = $this->unserializeChunk(file_get_contents($chunkFile));
+			       
+                  $contents.=$chunk;
+ 
+               }elseif(true === $inHeader){
+                $headers[]=$line;		
+                 $h = explode(':', $line);
+                 
+                if(true === $verbose && true === $withHeaders){                 
+                  if('Last-Modified' === $h[0]){
+                       // $headers = \getallheaders();
+                     if(isset($_SERVER['HTTP_IF_MODIFIED_SINCE']) && $_SERVER['HTTP_IF_MODIFIED_SINCE'] == trim($h[1]) ) {
+						  header_remove(); 	  
+                          header('HTTP/1.1 304 Not Modified');
+						  $verbose = false;
+							  
+                          //exit();
+							  /*
+						  return [        
+							  'headers'=>['HTTP/1.1 304 Not Modified'],           
+							  'contents' => '',
+						  ];
+						  */
+						}
+                       }elseif('ETag' === $h[0]){			
+                          if(isset($_SERVER['HTTP_ETAG']) && $_SERVER['HTTP_ETAG'] == trim($h[1]) ) {
+						    header_remove(); 	  
+                            header('HTTP/1.1 304 Not Modified');
+						    $verbose = false;
+							  
+							  /*
+                          //exit();				
+						  return [        
+							  'headers'=>['HTTP/1.1 304 Not Modified'],           
+							  'contents' => '',
+						  ];		  
+						  */
+						  }
+					   }else{						
+						  header($line); 						 
+					  }
+                    }
+                 
+                }
+		  }//while fgéts
+        
+				
         // Unset the file to call __destruct(), closing the file handle.
         $file = null;
-
-		    $uniqueCounterFile =  $uriDir.self::UNIQUE_COUNTER_FILE;
+ 
+		    
+		$uniqueCounterFile =  $uriDir.self::UNIQUE_COUNTER_FILE;
         if(!file_exists($uniqueCounterFile)){
             file_put_contents($uniqueCounterFile, 1);
         }else{
            file_put_contents($uniqueCounterFile, intval(file_get_contents($uniqueCounterFile)) + 1);
         }	
 			
-        $contents = $this->unserializeChunk($contents);
+      // $contents = $this->unserializeChunk($contents);
 
         if(true === $verbose && true === $withHeaders){
              foreach($headers as $header){
@@ -562,11 +612,12 @@ class Server implements StorageInterface
             'headers'=>$headers,
              'contents' => $contents,
         ];
-    }
-
+     
+	}
+	
     public function getChunks(
         string $source,
-        \callable|\closure $callback = null,
+        \callable| \closure $callback = null,
         int $chunksize = 80,
         string $delimiter = null
     ) : array {
