@@ -351,6 +351,16 @@ class Server implements StorageInterface
     }
 
     //todo 
+   public function pruneExpiredFiles( ){
+	   
+   }
+	
+    //todo 	
+   public function pruneExpiredUris( ){
+	   
+   }
+	
+	
     public function unreferenceUri( $urihash )
     {
          $uriDir = rtrim($this->config[self::URIS_DIR], '/\\ ')
@@ -382,7 +392,7 @@ class Server implements StorageInterface
           $this->unreferenceUri( $urihash );
     }
 
-    //todo 
+    
     public function pruneUnreferencedChunk( $chunkhash )
     {
 	    			
@@ -401,7 +411,7 @@ class Server implements StorageInterface
 	    }
     }
 
-    //todo 
+     
     public function pruneUnreferencedFile( $filehash )
     {
         $fileStorageDir = rtrim($this->config[self::FILES_DIR], '/\\ ')
