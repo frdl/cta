@@ -8,7 +8,7 @@ class XHashSha1 implements HashTypeInterface
     protected $sep = '/';
     public function __construct(string $contents = null,string $sep = null){
          if(null !== $sep){
-            $this->sep = $sep; 
+            $this->setSeparator($sep); 
          }
          if(null !== $contents){
             $this($contents); 
@@ -34,8 +34,11 @@ class XHashSha1 implements HashTypeInterface
             return $this->getHash();
          }      
       
+         $hash = sha1($contents);
+        
          $this->hash = [   
-            sha1($contents),         
+            substr($hash, 5, strlen($hash)),        
+            substr($hash, 0, 4),   
             strlen($contents),
          ];
        return $this->hash;
