@@ -36,9 +36,10 @@ class XHashSha1 implements HashTypeInterface
       
          $hash = sha1($contents);
         
-         $this->hash = [       
-            substr($hash, 0, 4),   
-            substr($hash, 5, strlen($hash)),    
+         $this->hash = [        
+            substr($hash, 5, strlen($hash)), 
+            substr($hash, 3, 2),     
+            substr($hash, 0, 2),   
             strlen($contents),
          ];
        return $this->hash;
