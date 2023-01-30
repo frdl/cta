@@ -163,7 +163,7 @@ class Server implements StorageInterface
 
     public function save(string $source, string $uri = null, array $headers = null, bool $touch = true, 
 						 bool $assoc = true,
-						 int $expiresAtTimestamp = null) : array
+						 int $expiresAtTimestamp = null) : array | bool
     {
         if(true === $touch){
            $fileModificationTime = gmdate('D, d M Y H:i:s', time()).' GMT';
@@ -370,7 +370,7 @@ class Server implements StorageInterface
         return true !== $assoc ? [$uhash, $hash, $chunks] : $this->assoc([$uhash, $hash, $chunks]);
     }
 
-    public function serve(string $uri = null,bool $withHeaders = true) : array
+    public function serve(string $uri = null,bool $withHeaders = true) : array | \Psr\Http\Message\ResponseInterface | bool
     {
         return $this->getByUri($uri, true, true, $withHeaders);
     }
@@ -404,7 +404,7 @@ class Server implements StorageInterface
                                                  $this->d($uriHash)). \DIRECTORY_SEPARATOR;
 	    
 	    	     
-	     $this->rmdir($referenceUriDir);
+	     $this->rmdir_real($referenceUriDir);
 	    $this->pruneUnreferencedFile( $fileHash );	
     }
 
@@ -432,7 +432,7 @@ class Server implements StorageInterface
 				 . \DIRECTORY_SEPARATOR;
 	    
 	    if(is_dir($referencesFilesDir) && $this->isDirEmpty($referencesFilesDir)){
-		   $this->rmdir($chunkDir);     
+		   $this->rmdir_real($chunkDir);     
 	    }
     }
 
@@ -464,17 +464,17 @@ class Server implements StorageInterface
 				 .'f'             
 				 . \DIRECTORY_SEPARATOR  . str_replace(['\\', '/'], [\DIRECTORY_SEPARATOR, \DIRECTORY_SEPARATOR],                       
 			  $this->d($filehash)). \DIRECTORY_SEPARATOR;
-			 $this->rmdir($referenceFileDir); 
+			 $this->rmdir_real($referenceFileDir); 
 			 
 		    $this->pruneUnreferencedChunk( trim($line) );			 
 		 }
              // Unset the file to call __destruct(), closing the file handle.
               $file = null;
-	     $this->rmdir($fileStorageDir); 		 
+	     $this->rmdir_real($fileStorageDir); 		 
 	 }
     }
 	
-   public function rmdir(string $dir) {
+   public function rmdir_real(string $dir) {
        $handle = opendir($dir);     
 		 while (false !== ($entry = readdir($handle))) {       
 			 if ($entry != "." && $entry != "..") {        
@@ -482,17 +482,20 @@ class Server implements StorageInterface
 				 if(is_file($path)){
 				   unlink($path);	 
 				 }elseif(is_dir($path)){
-				       $this->rmdir($path);	
+				       $this->rmdir_real($path);	
 				       rmdir($path);
 				 }
 				 
 			 }    
 		 }     
         closedir($handle);
-	rmdir($dir);   
+	rmdir($dir);    
    }	
 	 
-    public function getByUri(string $uri = null, bool $verbose = false, bool $count = false, bool $withHeaders = true) : array
+    public function getByUri(string $uri = null, 
+							 bool $verbose = false, 
+							 bool $count = false, 
+							 bool $withHeaders = true) : array | \Psr\Http\Message\ResponseInterface | bool
     {
         $class = $this->config[HashTypeInterface::class];
         $XHashSha1 = new $class($uri);
@@ -718,29 +721,46 @@ class Server implements StorageInterface
 		
     public function mimeByPath(string $path) : string
     {
-        preg_match("|\.([a-z0-9]{2,4})$|i", $path, $fileSuffix);
-
+          $fileSuffix = false;
+          if(\function_exists('mime_content_type')) {
+                $fileSuffix = \mime_content_type($path); 			   
+          }
+		
+		
+		if(false===$fileSuffix){
+			 preg_match("|\.([a-z0-9]{2,4})$|i", $path, $fileSuffix);		 
+		}else{
+		  return $fileSuffix;	
+		}
+		
         switch(strtolower($fileSuffix[1])) {
         case 'js' :
             return 'application/x-javascript';
+		   break;
         case 'json' :
             return 'application/json';
+		   break;
         case 'jpg' :
         case 'jpeg' :
         case 'jpe' :
             return 'image/jpg';
+		   break;
         case 'png' :
         case 'gif' :
         case 'bmp' :
         case 'tiff' :
             return 'image/'.strtolower($fileSuffix[1]);
+		   break;
         case 'css' :
             return 'text/css';
+		   break;
         case 'xml' :
             return 'application/xml';
+		   break;
         case 'doc' :
         case 'docx' :
             return 'application/msword';
+		   break;
         case 'xls' :
         case 'xlt' :
         case 'xlm' :
@@ -750,49 +770,63 @@ class Server implements StorageInterface
         case 'xlw' :
         case 'xll' :
             return 'application/vnd.ms-excel';
+		   break;
         case 'ppt' :
         case 'pps' :
             return 'application/vnd.ms-powerpoint';
+		   break;
         case 'rtf' :
             return 'application/rtf';
+		   break;
         case 'pdf' :
             return 'application/pdf';
+		   break;
         case 'html' :
         case 'htm' :
         case 'php' :
             return 'text/html';
+		   break;
         case 'txt' :
             return 'text/plain';
+		   break;
         case 'mpeg' :
         case 'mpg' :
         case 'mpe' :
             return 'video/mpeg';
+		   break;
         case 'mp3' :
             return 'audio/mpeg3';
+		   break;
         case 'wav' :
             return 'audio/wav';
+		   break;
         case 'aiff' :
         case 'aif' :
             return 'audio/aiff';
+		   break;
         case 'avi' :
             return 'video/msvideo';
+		   break;
         case 'wmv' :
             return 'video/x-ms-wmv';
+		   break;
         case 'mov' :
             return 'video/quicktime';
+		   break;
         case 'zip' :
             return 'application/zip';
+		   break;
         case 'tar' :
             return 'application/x-tar';
+		   break;
         case 'swf' :
             return 'application/x-shockwave-flash';
+		   break;
         default :
-            if(function_exists('mime_content_type')) {
-                $fileSuffix = mime_content_type($path);
-            }
-            return 'unknown/' . trim($fileSuffix[0], '.');
+            return 'application/octet-stream';
+		   break;
         }
     }
 }
-
+	
 }//ns
