@@ -11,7 +11,7 @@ public function save(string $source,
                      array $headers = null,
                      bool $touch = true, /* alter FileModificationTime */
 			   bool $assoc = true,
-			   int $expiresAtTimestamp = null) : array;
+			   int $expiresAtTimestamp = null) : array | bool;
 public function getHashes(
         string $source,
         string $uri = null,
@@ -20,8 +20,8 @@ public function getHashes(
         \callable|\closure $callback = null,
         bool $assoc = true
     ) : array;
- public function serve(string $uri = null, bool $withHeaders = true) : array;
- public function getByUri(string $uri = null, bool $verbose = false, bool $count = false, bool $withHeaders = true) : array;
+ public function serve(string $uri = null, bool $withHeaders = true) : array | \Psr\Http\Message\ResponseInterface | bool;
+ public function getByUri(string $uri = null, bool $verbose = false, bool $count = false, bool $withHeaders = true) : array | \Psr\Http\Message\ResponseInterface | bool;
  public function getChunks(
         string $source,
         \callable|\closure $callback = null,
